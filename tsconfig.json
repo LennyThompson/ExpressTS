@@ -1,0 +1,12 @@
+{
+  "files": [
+    "app.ts",
+    "public/typescript/**/*.ts",
+    "routes/**/*.ts",
+    "src/**/*.ts"
+  ],
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "target": "es5"
+  }
+}
