@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var express = require("express");
 var superAgent = require("superagent");
 var when = require("when");
+var rally_api_1 = require("./rally-api");
 var xmlParser = require("superagent-xml2jsparser");
 var ApiRouter = (function () {
     function ApiRouter() {
@@ -23,6 +24,7 @@ var ApiRouter = (function () {
             })
                 .catch(function (error) { return response.json = error; });
         });
+        rally_api_1.RallyApi.registerApi(router);
         //use router middleware
         app.use("/api", router);
     };

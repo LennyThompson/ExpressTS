@@ -1,6 +1,7 @@
 import * as express from "express";
 import * as superAgent from "superagent";
 import * as when from "when";
+import {RallyApi} from "./rally-api";
 
 var xmlParser = require("superagent-xml2jsparser");
 
@@ -34,6 +35,8 @@ export class ApiRouter
                     .catch((error) => response.json = error);
             }
         );
+
+        RallyApi.registerApi(router);
 
         //use router middleware
         app.use("/api", router);
