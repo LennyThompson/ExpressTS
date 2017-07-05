@@ -2,6 +2,8 @@ import * as express from "express";
 import * as when from "when";
 import * as superAgent from "superagent";
 import * as lodash from "lodash";
+import {RallyIssueFetchImpl, RallyIssueRequest, RallyIssueRequestImpl, RallyQueryImpl} from "./rally-query";
+
 
 const RALLY_URL: string = "https://rally1.rallydev.com";
 const RALLY_WEB_SERVICE_PATH: string = "/slm/webservice/v2.0";
@@ -10,30 +12,14 @@ const RALLY_TASK_PATH: string = "/task";
 const RALLY_ARTIFACT_PATH: string = "/artifact";
 
 const RALLY_HIER_REQ_PATH: string = "/hierarchicalrequirement";
-const RALLY_HEIR_REQ_DEFECT_PATH: string = RALLY_HIER_REQ_PATH + "%2Cdefect";
+const ALLY_HIER_REQ_DEFECT_PATH: string = RALLY_HIER_REQ_PATH + "%2Cdefect";
 
-interface RallyIssueQuery
-{
-    types: string;
-    start: number;
-    pagesize: number;
-    order: string;
-    query: string;
-    fetch: string;
-    includePermissions: boolean;
-    compact: boolean;
-    // project: string;
-    projectScopeUp: boolean;
-    projectScopeDown: boolean;
-    _slug: string;
-}
 
-const RALLY_PROD_BOARD_QUERY: string = "(((((TypeDefOid%20%3D%2025364774197)%20AND%20(ScheduleState%20%3D%20%22Completed%22))%20AND%20(DirectChildrenCount%20%3D%200))%20OR%20((TypeDefOid%20%3D%2025364774132)%20AND%20(ScheduleState%20%3D%20%22Completed%22)))%20AND%20(Release.OID%20%3D%2090509950300))";
+const RALLY_PROD_BOARD_QUERY: string = "(((((TypeDefOid = 25364774197) AND (ScheduleState = \"Completed\")) AND (DirectChildrenCount = 0)) OR ((TypeDefOid = 25364774132) AND (ScheduleState = \"Completed\"))) AND (Release.OID = 90509950300))";
 const RALLY_PROD_BOARD_FETCH: string[] = [
     "ScheduleState",
     "Blocked",
     "Ready",
-    "ScheduleStatePrefix",
     "ObjectID",
     "Workspace",
     "VersionId",
@@ -157,9 +143,7 @@ export class RallyApi
                         () => {
                             console.log("token: ", this._securityToken.SecurityToken);
                             this._agent.get(strPath)
-                                .query(this.buildRallyQuery())
-                                // .serialize()
-                                // .query("types=hierarchicalrequirement%2Cdefect&start=1&pagesize=15&order=DragAndDropRank%20ASC%2CObjectID&query=(((((TypeDefOid%20%3D%2025364774197)%20AND%20(ScheduleState%20%3D%20%22Completed%22))%20AND%20(DirectChildrenCount%20%3D%200))%20OR%20((TypeDefOid%20%3D%2025364774132)%20AND%20(ScheduleState%20%3D%20%22Completed%22)))%20AND%20(Release.OID%20%3D%2090509950300))&fetch=ScheduleState%2CBlocked%2CReady%2CScheduleStatePrefix%2CObjectID%2CWorkspace%2CVersionId%2CRevisionHistory%2CCreationDate%2COwner%2CFormattedID%2CBlockedReason%2CName%2CTags%2CDisplayColor%2CProject%2CDiscussion%3Asummary%2CLatestDiscussionAgeInMinutes%2CTasks%3Asummary%5BState%3BToDo%3BOwner%3BBlocked%5D%2CTaskStatus%2CDefects%3Asummary%5BState%3BOwner%5D%2CDefectStatus%2CC_DefectSeverity%2CC_DefectImpact%2CDragAndDropRank&includePermissions=true&compact=true&project=%2Fproject%2F42581744832&projectScopeUp=true&projectScopeDown=true&_slug=%2Fcustom%2F96741607520_1")//this.buildRallyQuery())
+                                .query(this.buildRallyQuery().buildRequestString())
                                 .end(
                                     (error: any, response: any) =>
                                     {
@@ -228,26 +212,16 @@ export class RallyApi
         );
     }
 
-    private buildRallyQuery(): RallyIssueQuery
+    // public static serialiseRallyRequest(rallyRequest: RallyIssueQuery): string
+    // {
+    //     console.log("Rally request", JSON.stringify(rallyRequest));
+    //     return "types=hierarchicalrequirement%2Cdefect&start=1&pagesize=15&order=DragAndDropRank%20ASC%2CObjectID&query=(((((TypeDefOid%20%3D%2025364774197)%20AND%20(ScheduleState%20%3D%20%22Backlog%22))%20AND%20(DirectChildrenCount%20%3D%200))%20OR%20((TypeDefOid%20%3D%2025364774132)%20AND%20(ScheduleState%20%3D%20%22Backlog%22)))%20AND%20(Release.OID%20%3D%2090509950300))&fetch=ScheduleState%2CBlocked%2CReady%2CScheduleStatePrefix%2CObjectID%2CWorkspace%2CVersionId%2CRevisionHistory%2CCreationDate%2COwner%2CFormattedID%2CBlockedReason%2CName%2CTags%2CDisplayColor%2CProject%2CDiscussion%3Asummary%2CLatestDiscussionAgeInMinutes%2CTasks%3Asummary%5BState%3BToDo%3BOwner%3BBlocked%5D%2CTaskStatus%2CDefects%3Asummary%5BState%3BOwner%5D%2CDefectStatus%2CC_DefectSeverity%2CC_DefectImpact%2CDragAndDropRank&includePermissions=true&compact=true&project=%2Fproject%2F42581744832&projectScopeUp=true&projectScopeDown=true&_slug=%2Fcustom%2F96741607520_1";
+    // }
+    //
+    private buildRallyQuery(): RallyIssueRequest
     {
-        let rallyQuery: RallyIssueQuery = {
-            types: "hierarchicalrequirement%2Cdefect",
-            start: 1,
-            pagesize: 15,
-            order: "DragAndDropRank%20ASC%2CObjectID",
-            query: RALLY_PROD_BOARD_QUERY,
-            fetch: "",
-            includePermissions: true,
-            compact: true,
-            // project: "%2Fproject%2F42581744832",
-            projectScopeUp: true,
-            projectScopeDown: true,
-            _slug: "%2Fcustom%2F96741607520_1"
-        };
-        rallyQuery.fetch = lodash(RALLY_PROD_BOARD_FETCH)
-                            .join("%2C")
-                            .valueOf();
-        console.log(JSON.stringify(rallyQuery));
+        let rallyQuery: RallyIssueRequest = new RallyIssueRequestImpl();
+        console.log(JSON.stringify(rallyQuery.fetch));
         return rallyQuery;
     }
 }
