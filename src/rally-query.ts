@@ -1,10 +1,11 @@
 import * as lodash from "lodash";
 
-const COLON_SEPARATOR: string = "%3A";          // ':'
-const SEMI_COLON_SEPARATOR: string = "%3B";     // ';'
-const COMMA_SEPARATOR: string = "%2C";          // ','
-const BRACKET_SEPARATOR: string = "%5D";        // ']'
-const SPACE_SEPARATOR: string = "%20";          // ' '
+export const COLON_SEPARATOR: string = "%3A";          // ':'
+export const SEMI_COLON_SEPARATOR: string = "%3B";     // ';'
+export const COMMA_SEPARATOR: string = "%2C";          // ','
+export const OPEN_BRACKET_SEPARATOR: string = "%5B";   // '['
+export const CLOSE_BRACKET_SEPARATOR: string = "%5D";  // ']'
+export const SPACE_SEPARATOR: string = "%20";          // ' '
 
 export interface RallyRelease
 {
@@ -17,7 +18,7 @@ export class RallyReleaseImpl implements RallyRelease
 
     constructor()
     {
-
+        this.OID = 0;
     }
 }
 
@@ -39,16 +40,18 @@ export class RallyQueryImpl implements RallyQuery
     Release: RallyRelease;
     constructor()
     {
+        this.ScheduleState = [];
+        this.DirectChildrenCount = 0;
         this.Release = new RallyReleaseImpl();
     }
 
     public buildQueryString(): string
     {
         let strQuery = "(TypeDefOid = " + this.TypeDefOid + " AND ";
-        strQuery += "(" + lodash(lodash(this.ScheduleState).map((state) => "ScheduleState = " + state).value()).join(" OR ") + ")";
+        strQuery += "(" + lodash(lodash(this.ScheduleState).map((state) => "ScheduleState = %22" + state + "%22").value()).join(" OR ") + ")";
         strQuery += " AND (";
         strQuery += " DirectChildrenCount = " + this.DirectChildrenCount;
-        strQuery += " OR ";
+        strQuery += " OR";
         strQuery += " Release = " + this.Release.OID + "))";
         strQuery = strQuery.replace(/\s/g, SPACE_SEPARATOR);
         return strQuery;
@@ -59,7 +62,8 @@ export interface RallyFetchBase
 {
     initiator: string;      // %3A (':')
     separator: string;      // %2C (','), %3B (';")
-    terminator: string;     // %5D {']')
+    open: string;           // %5B {']')
+    close: string;          // %5D {']')
 }
 
 export interface RallyIssuesDiscussionFetch extends RallyFetchBase
@@ -74,10 +78,69 @@ export interface RallyTasksFetch extends RallyFetchBase
     ToDo: boolean;
     Owner: boolean;
     Blocked: boolean;
+
+    hasFetchString: boolean;
+
+    buildFetchString(): string;
 }
 
 export interface RallyDefectsFetch extends RallyTasksFetch
 {
+}
+
+export class RallyTasksFetchImpl implements RallyTasksFetch
+{
+    summary: boolean;
+    State: boolean;
+    ToDo: boolean;
+    Owner: boolean;
+    Blocked: boolean;
+    initiator: string;
+    separator: string;
+    open: string;
+    close: string;
+    constructor(initiator: string, separator: string)
+    {
+        this.initiator = initiator;
+        this.separator = separator;
+        this.open = OPEN_BRACKET_SEPARATOR;
+        this.close = CLOSE_BRACKET_SEPARATOR;
+    }
+
+    get hasFetchString(): boolean
+    {
+        return this.summary;
+    }
+
+    public buildFetchString(): string
+    {
+        // Tasks%3Asummary%5BState%3BToDo%3BOwner%3BBlocked%5D
+        if(this.summary)
+        {
+            let strFetch: string = "Tasks" + this.initiator + "summary" + this.open;
+            let listFetchs: string[] = [];
+            if(this.State)
+            {
+                listFetchs.push("State");
+            }
+            if(this.ToDo)
+            {
+                listFetchs.push("ToDo");
+            }
+            if(this.Owner)
+            {
+                listFetchs.push("Owner");
+            }
+            if(this.Blocked)
+            {
+                listFetchs.push("Blocked");
+            }
+            strFetch += lodash(listFetchs).join(this.separator);
+            strFetch += this.close;
+            return strFetch;
+
+        }
+    }
 }
 
 export interface RallyIssueFetch extends RallyFetchBase
@@ -140,13 +203,17 @@ export class RallyIssueFetchImpl implements RallyIssueFetch
     otherFields: string[];
     initiator: string;
     separator: string;
-    terminator: string;
+    close: string;
+    open: string;
 
-    constructor(separator: string, terminator: string, initiator: string)
+    constructor(separator: string)
     {
         this.separator = separator;
-        this.terminator = terminator;
-        this.initiator = initiator;
+        this.open = OPEN_BRACKET_SEPARATOR;
+        this.close = CLOSE_BRACKET_SEPARATOR;
+        this.initiator = COLON_SEPARATOR;
+        this.Tasks = new RallyTasksFetchImpl(COLON_SEPARATOR, SEMI_COLON_SEPARATOR);
+        this.Defects = new RallyTasksFetchImpl(COLON_SEPARATOR, SEMI_COLON_SEPARATOR);
     }
 
     public buildFetchString(): string
@@ -221,7 +288,6 @@ export class RallyIssueFetchImpl implements RallyIssueFetch
             if(this.Discussion.summary)
             {
                 strDiscussion += "summary";
-                strDiscussion += this.Discussion.separator;
             }
 
             listFetchFields.push(strDiscussion);
@@ -230,79 +296,17 @@ export class RallyIssueFetchImpl implements RallyIssueFetch
         {
             listFetchFields.push("LatestDiscussionAgeInMinutes");
         }
-        if(this.Tasks)
+        if(this.Tasks.hasFetchString)
         {
-            let strTasks: string = "Tasks";
-            strTasks += this.Tasks.initiator;
-            if(this.Tasks.summary)
-            {
-                strTasks += "summary";
-                strTasks += this.Tasks.separator;
-            }
-
-            if(this.Tasks.State)
-            {
-                strTasks += "State";
-                strTasks += this.Tasks.separator;
-            }
-
-            if(this.Tasks.ToDo)
-            {
-                strTasks += "ToDo";
-                strTasks += this.Tasks.separator;
-            }
-
-            if(this.Tasks.Owner)
-            {
-                strTasks += "Owner";
-                strTasks += this.Tasks.separator;
-            }
-
-            if(this.Tasks.Blocked)
-            {
-                strTasks += "Blocked";
-                strTasks += this.Tasks.separator;
-            }
-            listFetchFields.push(strTasks);
+            listFetchFields.push(this.Tasks.buildFetchString());
         }
         if(this.TaskStatus)
         {
             listFetchFields.push("TaskStatus");
         }
-        if(this.Defects)
+        if(this.Defects.hasFetchString)
         {
-            let strDefects: string = "Defects";
-            strDefects += this.Defects.initiator;
-            if(this.Defects.summary)
-            {
-                strDefects += "summary";
-                strDefects += this.Defects.separator;
-            }
-
-            if(this.Defects.State)
-            {
-                strDefects += "State";
-                strDefects += this.Defects.separator;
-            }
-
-            if(this.Defects.ToDo)
-            {
-                strDefects += "ToDo";
-                strDefects += this.Defects.separator;
-            }
-
-            if(this.Defects.Owner)
-            {
-                strDefects += "Owner";
-                strDefects += this.Defects.separator;
-            }
-
-            if(this.Defects.Blocked)
-            {
-                strDefects += "Blocked";
-                strDefects += this.Defects.separator;
-            }
-            listFetchFields.push(strDefects);
+            listFetchFields.push(this.Defects.buildFetchString());
         }
         if(this.DefectStatus)
         {
@@ -320,7 +324,11 @@ export class RallyIssueFetchImpl implements RallyIssueFetch
         {
             listFetchFields.push("DragAndDropRank");
         }
-        listFetchFields = lodash(listFetchFields).concat(this.otherFields).value();
+
+        if(this.otherFields && this.otherFields.length > 0)
+        {
+            listFetchFields = lodash(listFetchFields).concat(this.otherFields).value();
+        }
 
         return lodash(listFetchFields).join(this.separator);
     }
@@ -365,7 +373,7 @@ export class RallyIssueRequestImpl implements RallyIssueRequest
         this.start = 1;
         this.pagesize = 40;
         this.order = "DragAndDropRank%20ASC%2CObjectID";
-        this.fetch = new RallyIssueFetchImpl(COLON_SEPARATOR, SEMI_COLON_SEPARATOR, BRACKET_SEPARATOR);
+        this.fetch = new RallyIssueFetchImpl(COLON_SEPARATOR);
         this.query = new RallyQueryImpl();
         this.includePermissions = true;;
         this.compact = true;

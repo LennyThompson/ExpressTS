@@ -1,9 +1,17 @@
 
 import {RallyApi} from "./rally-api";
 import { expect } from "chai";
-import {RallyIssueRequest, RallyIssueRequestImpl, RallyQuery, RallyQueryImpl} from "./rally-query";
+import {
+    OPEN_BRACKET_SEPARATOR,
+    COLON_SEPARATOR,
+    COMMA_SEPARATOR, RallyDefectsFetch,
+    RallyIssueFetch, RallyIssueFetchImpl, RallyIssueRequest, RallyIssueRequestImpl, RallyQuery,
+    RallyQueryImpl, RallyTasksFetch, SEMI_COLON_SEPARATOR, CLOSE_BRACKET_SEPARATOR
+} from "./rally-query";
 
-const RALLY_QUERY_STRING: string = "(((((TypeDefOid%20%3D%2025364774197)%20AND%20(ScheduleState%20%3D%20%22Backlog%22))%20AND%20(DirectChildrenCount%20%3D%200))%20OR%20((TypeDefOid%20%3D%2025364774132)%20AND%20(ScheduleState%20%3D%20%22Backlog%22)))%20AND%20(Release.OID%20%3D%2090509950300))";
+const RALLY_QUERY_STRING: string = "(TypeDefOid%20=%20undefined%20AND%20(ScheduleState%20=%20%22Backlog%22)%20AND%20(%20DirectChildrenCount%20=%200%20OR%20Release%20=%2090509950300))";
+const RALLY_FETCH_STRING: string = "ScheduleState%2CBlocked%2CCreationDate%2COwner%2CName%2CProject";
+const RALLY_COMPLETE_FETCH_STRING: string = "ScheduleState%2CBlocked%2CReady%2CObjectID%2CWorkspace%2CVersionId%2CRevisionHistory%2CCreationDate%2COwner%2CFormattedID%2CBlockedReason%2CName%2CTags%2CDisplayColor%2CProject%2CDiscussion%3Asummary%2CLatestDiscussionAgeInMinutes%2CTasks%3Asummary%3BState%3BToDo%3BOwner%3BBlocked%2CTaskStatus%2CDefects%3Asummary%3BState%3BToDo%3BOwner%3BBlocked%2CDefectStatus%2CC_DefectSeverity%2CC_DefectImpact%2CDragAndDropRank";
 
 const RALLY_QUERY: string = "types=hierarchicalrequirement%2Cdefect" +
                             "&start=1" +
@@ -39,8 +47,62 @@ describe("Test rally query serialisation", () =>
         it("should build compatible rally query", () =>
         {
             let rallyQuery: RallyQuery = new RallyQueryImpl();
-            expect(rallyQuery.buildQueryString()).to.be(RALLY_QUERY_STRING);
+            rallyQuery.ScheduleState.push("Backlog");
+            rallyQuery.Release.OID = 90509950300;
+            expect(rallyQuery.buildQueryString()).to.equal(RALLY_QUERY_STRING);
 
+        });
+
+        it("should build a compatible rally fetch", () =>
+        {
+            let rallyFetch: RallyIssueFetch = new RallyIssueFetchImpl(COMMA_SEPARATOR);
+            rallyFetch.ScheduleState = true;
+            rallyFetch.CreationDate = true;
+            rallyFetch.Name = true;
+            rallyFetch.Owner = true;
+            rallyFetch.Blocked = true;
+            rallyFetch.Project = true;
+
+            expect(rallyFetch.buildFetchString()).to.equal(RALLY_FETCH_STRING);
+        });
+
+        it("should build a complete rally fetch", () =>
+        {
+            let rallyFetch: RallyIssueFetch = new RallyIssueFetchImpl(COMMA_SEPARATOR);
+            rallyFetch.ScheduleState = true;
+            rallyFetch.Blocked = true;
+            rallyFetch.Ready = true;
+            rallyFetch.ObjectID = true;
+            rallyFetch.Workspace = true;
+            rallyFetch.VersionId = true;
+            rallyFetch.RevisionHistory = true;
+            rallyFetch.CreationDate = true;
+            rallyFetch.Owner = true;
+            rallyFetch.FormattedID = true;
+            rallyFetch.BlockedReason = true;
+            rallyFetch.Name = true;
+            rallyFetch.Tags = true;
+            rallyFetch.DisplayColor = true;
+            rallyFetch.Project = true;
+            rallyFetch.Discussion = { initiator: COLON_SEPARATOR, separator: SEMI_COLON_SEPARATOR, open: OPEN_BRACKET_SEPARATOR, close: CLOSE_BRACKET_SEPARATOR, summary: true };
+            rallyFetch.LatestDiscussionAgeInMinutes = true;
+            rallyFetch.Tasks.summary = true;
+            rallyFetch.Tasks.State = true;
+            rallyFetch.Tasks.ToDo = true;
+            rallyFetch.Tasks.Owner = true;
+            rallyFetch.Tasks.Blocked = true;
+            rallyFetch.TaskStatus = true;
+            rallyFetch.Defects.summary = true;
+            rallyFetch.Defects.State = true;
+            rallyFetch.Defects.ToDo = true;
+            rallyFetch.Defects.Owner = true;
+            rallyFetch.Defects.Blocked = true;
+            rallyFetch.DefectStatus = true;
+            rallyFetch.C_DefectSeverity = true;
+            rallyFetch.C_DefectImpact = true;
+            rallyFetch.DragAndDropRank = true;
+
+            expect(rallyFetch.buildFetchString()).to.equal(RALLY_COMPLETE_FETCH_STRING);
         });
 
     }
