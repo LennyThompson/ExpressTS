@@ -141,9 +141,9 @@ export class RallyApi
                 this.getSecurityToken()
                     .then(
                         () => {
-                            console.log("token: ", this._securityToken.SecurityToken);
+                            console.log("request string: ", this.buildRallyRquest().buildRequestString());
                             this._agent.get(strPath)
-                                .query(this.buildRallyQuery().buildRequestString())
+                                .query(this.buildRallyRquest().buildRequestString())
                                 .end(
                                     (error: any, response: any) =>
                                     {
@@ -218,10 +218,20 @@ export class RallyApi
     //     return "types=hierarchicalrequirement%2Cdefect&start=1&pagesize=15&order=DragAndDropRank%20ASC%2CObjectID&query=(((((TypeDefOid%20%3D%2025364774197)%20AND%20(ScheduleState%20%3D%20%22Backlog%22))%20AND%20(DirectChildrenCount%20%3D%200))%20OR%20((TypeDefOid%20%3D%2025364774132)%20AND%20(ScheduleState%20%3D%20%22Backlog%22)))%20AND%20(Release.OID%20%3D%2090509950300))&fetch=ScheduleState%2CBlocked%2CReady%2CScheduleStatePrefix%2CObjectID%2CWorkspace%2CVersionId%2CRevisionHistory%2CCreationDate%2COwner%2CFormattedID%2CBlockedReason%2CName%2CTags%2CDisplayColor%2CProject%2CDiscussion%3Asummary%2CLatestDiscussionAgeInMinutes%2CTasks%3Asummary%5BState%3BToDo%3BOwner%3BBlocked%5D%2CTaskStatus%2CDefects%3Asummary%5BState%3BOwner%5D%2CDefectStatus%2CC_DefectSeverity%2CC_DefectImpact%2CDragAndDropRank&includePermissions=true&compact=true&project=%2Fproject%2F42581744832&projectScopeUp=true&projectScopeDown=true&_slug=%2Fcustom%2F96741607520_1";
     // }
     //
-    private buildRallyQuery(): RallyIssueRequest
+    private buildRallyRquest(): RallyIssueRequest
     {
-        let rallyQuery: RallyIssueRequest = new RallyIssueRequestImpl();
-        console.log(JSON.stringify(rallyQuery.fetch));
-        return rallyQuery;
+        let rallyRequest: RallyIssueRequest = new RallyIssueRequestImpl();
+
+        rallyRequest.query.ScheduleState.push("Backlog");
+        rallyRequest.query.Release.OID = 90509950300;
+
+        rallyRequest.fetch.ScheduleState = true;
+        rallyRequest.fetch.CreationDate = true;
+        rallyRequest.fetch.Name = true;
+        rallyRequest.fetch.Owner = true;
+        rallyRequest.fetch.Blocked = true;
+        rallyRequest.fetch.Project = true;
+
+        return rallyRequest;
     }
 }

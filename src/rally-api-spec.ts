@@ -6,41 +6,24 @@ import {
     COLON_SEPARATOR,
     COMMA_SEPARATOR, RallyDefectsFetch,
     RallyIssueFetch, RallyIssueFetchImpl, RallyIssueRequest, RallyIssueRequestImpl, RallyQuery,
-    RallyQueryImpl, RallyTasksFetch, SEMI_COLON_SEPARATOR, CLOSE_BRACKET_SEPARATOR
+    RallyQueryImpl, RallyTasksFetch, SEMI_COLON_SEPARATOR, CLOSE_BRACKET_SEPARATOR, RallyTasksFetchImpl
 } from "./rally-query";
 
 const RALLY_QUERY_STRING: string = "(TypeDefOid%20=%20undefined%20AND%20(ScheduleState%20=%20%22Backlog%22)%20AND%20(%20DirectChildrenCount%20=%200%20OR%20Release%20=%2090509950300))";
 const RALLY_FETCH_STRING: string = "ScheduleState%2CBlocked%2CCreationDate%2COwner%2CName%2CProject";
-const RALLY_COMPLETE_FETCH_STRING: string = "ScheduleState%2CBlocked%2CReady%2CObjectID%2CWorkspace%2CVersionId%2CRevisionHistory%2CCreationDate%2COwner%2CFormattedID%2CBlockedReason%2CName%2CTags%2CDisplayColor%2CProject%2CDiscussion%3Asummary%2CLatestDiscussionAgeInMinutes%2CTasks%3Asummary%3BState%3BToDo%3BOwner%3BBlocked%2CTaskStatus%2CDefects%3Asummary%3BState%3BToDo%3BOwner%3BBlocked%2CDefectStatus%2CC_DefectSeverity%2CC_DefectImpact%2CDragAndDropRank";
+const RALLY_COMPLETE_FETCH_STRING: string = "ScheduleState%2CBlocked%2CReady%2CObjectID%2CWorkspace%2CVersionId%2CRevisionHistory%2CCreationDate%2COwner%2CFormattedID%2CBlockedReason%2CName%2CTags%2CDisplayColor%2CProject%2CDiscussion%3Asummary%2CLatestDiscussionAgeInMinutes%2CTasks%3Asummary%5BState%3BToDo%3BOwner%3BBlocked%5D%2CTaskStatus%2CTasks%3Asummary%5BState%3BToDo%3BOwner%3BBlocked%5D%2CDefectStatus%2CC_DefectSeverity%2CC_DefectImpact%2CDragAndDropRank";
 
 const RALLY_QUERY: string = "types=hierarchicalrequirement%2Cdefect" +
                             "&start=1" +
-                            "&pagesize=20" +
-                            "&order=DragAndDropRank%20ASC%2CObjectID" +
-                            "&query=(((((TypeDefOid%20%3D%2025364774197)%20AND%20(ScheduleState%20%3D%20%22Backlog%22))%20AND%20(DirectChildrenCount%20%3D%200))%20OR%20((TypeDefOid%20%3D%2025364774132)%20AND%20(ScheduleState%20%3D%20%22Backlog%22)))%20AND%20(Release.OID%20%3D%2090509950300))" +
-                            "&fetch=ScheduleState%2CBlocked%2CReady%2CScheduleStatePrefix%2CObjectID%2CWorkspace%2CVersionId%2CRevisionHistory%2CCreationDate%2COwner%2CFormattedID%2CBlockedReason%2CName%2CTags%2CDisplayColor%2CProject%2CDiscussion%3Asummary%2CLatestDiscussionAgeInMinutes%2CTasks%3Asummary%5BState%3BToDo%3BOwner%3BBlocked%5D%2CTaskStatus%2CDefects%3Asummary%5BState%3BOwner%5D%2CDefectStatus%2CC_DefectSeverity%2CC_DefectImpact%2CDragAndDropRank" +
+                            "&pagesize=40" +
+                            "&query=(TypeDefOid%20=%20undefined%20AND%20()%20AND%20(%20DirectChildrenCount%20=%200%20OR%20Release%20=%200))" +
+                            "&fetch=ScheduleState%3ABlocked%3ACreationDate%3AOwner%3AName%3AProject" +
                             "&includePermissions=true" +
                             "&compact=true" +
-                            "&project=%2Fproject%2F42581744832" +
+                            "&project=%2Fproject%2F42581744832" + "" +
                             "&projectScopeUp=true" +
                             "&projectScopeDown=true" +
                             "&_slug=%2Fcustom%2F96741607520_1";
-
-const RALLY_QUERY_CONFIG: RallyIssueRequest = new RallyIssueRequestImpl();
-// {
-//     types: "hierarchicalrequirement%2Cdefect",
-//     start: 1,
-//     pagesize: 20,
-//     order: "DragAndDropRank%20ASC%2CObjectID",
-//     query: "(((((TypeDefOid%20%3D%2025364774197)%20AND%20(ScheduleState%20%3D%20%22Backlog%22))%20AND%20(DirectChildrenCount%20%3D%200))%20OR%20((TypeDefOid%20%3D%2025364774132)%20AND%20(ScheduleState%20%3D%20%22Backlog%22)))%20AND%20(Release.OID%20%3D%2090509950300))",
-//     fetch: "ScheduleState%2CBlocked%2CReady%2CScheduleStatePrefix%2CObjectID%2CWorkspace%2CVersionId%2CRevisionHistory%2CCreationDate%2COwner%2CFormattedID%2CBlockedReason%2CName%2CTags%2CDisplayColor%2CProject%2CDiscussion%3Asummary%2CLatestDiscussionAgeInMinutes%2CTasks%3Asummary%5BState%3BToDo%3BOwner%3BBlocked%5D%2CTaskStatus%2CDefects%3Asummary%5BState%3BOwner%5D%2CDefectStatus%2CC_DefectSeverity%2CC_DefectImpact%2CDragAndDropRank",
-//     includePermissions: true,
-//     compact: true,
-//     project: "%2Fproject%2F42581744832",
-//     projectScopeUp: true,
-//     projectScopeDown: true,
-//     _slug: "%2Fcustom%2F96741607520_1"
-// };
 
 describe("Test rally query serialisation", () =>
     {
@@ -51,6 +34,26 @@ describe("Test rally query serialisation", () =>
             rallyQuery.Release.OID = 90509950300;
             expect(rallyQuery.buildQueryString()).to.equal(RALLY_QUERY_STRING);
 
+        });
+
+        it("should build Tasks fetch string", () =>
+        {
+            let rallyTasks: RallyTasksFetch = new RallyTasksFetchImpl(COLON_SEPARATOR, SEMI_COLON_SEPARATOR);
+
+            expect(rallyTasks.hasFetchString).to.equal(false);
+
+            rallyTasks.summary = true;
+            rallyTasks.ToDo = true;
+
+            expect(rallyTasks.hasFetchString).to.equal(true);
+            expect(rallyTasks.buildFetchString()).to.equal("Tasks%3Asummary%5BToDo%5D");
+
+            rallyTasks.State = true;
+            rallyTasks.Blocked = true;
+            rallyTasks.Owner = true;
+
+            expect(rallyTasks.hasFetchString).to.equal(true);
+            expect(rallyTasks.buildFetchString()).to.equal("Tasks%3Asummary%5BState%3BToDo%3BOwner%3BBlocked%5D");
         });
 
         it("should build a compatible rally fetch", () =>
@@ -105,5 +108,18 @@ describe("Test rally query serialisation", () =>
             expect(rallyFetch.buildFetchString()).to.equal(RALLY_COMPLETE_FETCH_STRING);
         });
 
+        it('should build complete rally request', () =>
+        {
+            let rallyRequest: RallyIssueRequest = new RallyIssueRequestImpl();
+
+            rallyRequest.fetch.ScheduleState = true;
+            rallyRequest.fetch.CreationDate = true;
+            rallyRequest.fetch.Name = true;
+            rallyRequest.fetch.Owner = true;
+            rallyRequest.fetch.Blocked = true;
+            rallyRequest.fetch.Project = true;
+
+            expect(rallyRequest.buildRequestString()).to.equal(RALLY_QUERY);
+        })
     }
 );

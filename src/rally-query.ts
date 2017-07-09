@@ -6,6 +6,7 @@ export const COMMA_SEPARATOR: string = "%2C";          // ','
 export const OPEN_BRACKET_SEPARATOR: string = "%5B";   // '['
 export const CLOSE_BRACKET_SEPARATOR: string = "%5D";  // ']'
 export const SPACE_SEPARATOR: string = "%20";          // ' '
+export const FORWARD_SLASH_SEPARATOR: string = "%2F";  // '/'
 
 export interface RallyRelease
 {
@@ -47,7 +48,7 @@ export class RallyQueryImpl implements RallyQuery
 
     public buildQueryString(): string
     {
-        let strQuery = "(TypeDefOid = " + this.TypeDefOid + " AND ";
+        let strQuery = "((TypeDefOid = " + this.TypeDefOid + ") AND ";
         strQuery += "(" + lodash(lodash(this.ScheduleState).map((state) => "ScheduleState = %22" + state + "%22").value()).join(" OR ") + ")";
         strQuery += " AND (";
         strQuery += " DirectChildrenCount = " + this.DirectChildrenCount;
@@ -109,7 +110,7 @@ export class RallyTasksFetchImpl implements RallyTasksFetch
 
     get hasFetchString(): boolean
     {
-        return this.summary;
+        return this.summary ? true : false;
     }
 
     public buildFetchString(): string
@@ -336,7 +337,7 @@ export class RallyIssueFetchImpl implements RallyIssueFetch
 
 export interface RallyIssueRequest
 {
-    types: string;
+    types: string[];
     start: number;
     pagesize: number;
     order: string;
@@ -344,17 +345,17 @@ export interface RallyIssueRequest
     fetch: RallyIssueFetch;
     includePermissions: boolean;
     compact: boolean;
-    project: string;
+    project: number;
     projectScopeUp: boolean;
     projectScopeDown: boolean;
-    _slug: string;
+    _slug: string[];
 
     buildRequestString(): string;
 }
 
 export class RallyIssueRequestImpl implements RallyIssueRequest
 {
-    types: string;
+    types: string[];
     start: number;
     pagesize: number;
     order: string;
@@ -362,41 +363,41 @@ export class RallyIssueRequestImpl implements RallyIssueRequest
     fetch: RallyIssueFetch;
     includePermissions: boolean;
     compact: boolean;
-    project: string;
+    project: number;
     projectScopeUp: boolean;
     projectScopeDown: boolean;
-    _slug: string;
+    _slug: string[];
 
     constructor()
     {
-        this.types = "hierarchicalrequirement%2Cdefect";
+        this.types = [ "hierarchicalrequirement", "defect" ];
         this.start = 1;
         this.pagesize = 40;
         this.order = "DragAndDropRank%20ASC%2CObjectID";
         this.fetch = new RallyIssueFetchImpl(COLON_SEPARATOR);
         this.query = new RallyQueryImpl();
-        this.includePermissions = true;;
+        this.includePermissions = true;
         this.compact = true;
-        this.project = "%2Fproject%2F42581744832";
+        this.project = 42581744832;
         this.projectScopeUp = true;
         this.projectScopeDown = true;
-        this._slug = "";
+        this._slug = ["custom", "96741607520_1"];
     }
 
     public buildRequestString(): string
     {
         let listRequests: string[] = [];
-        listRequests.push("types=" + this.types);
+        listRequests.push("types=" + lodash(this.types).join(COMMA_SEPARATOR));
         listRequests.push("start=" + this.start);
         listRequests.push("pagesize=" + this.pagesize);
         listRequests.push("query=" + this.query.buildQueryString());
         listRequests.push("fetch=" + this.fetch.buildFetchString());
         listRequests.push("includePermissions=" + this.includePermissions);
         listRequests.push("compact=" + this.compact);
-        listRequests.push("project=" + this.project);
+        listRequests.push("project=" + FORWARD_SLASH_SEPARATOR + "project" + FORWARD_SLASH_SEPARATOR + this.project);
         listRequests.push("projectScopeUp=" + this.projectScopeUp);
         listRequests.push("projectScopeDown=" + this.projectScopeDown);
-        listRequests.push("_slug=" + this._slug);
+        listRequests.push("_slug=" + FORWARD_SLASH_SEPARATOR + lodash(this._slug).join(FORWARD_SLASH_SEPARATOR));
 
         return lodash(listRequests).join("&");
     }
